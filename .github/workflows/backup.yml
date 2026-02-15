@@ -1,0 +1,40 @@
+name: Backup Dreamscapes Goods
+
+on:
+  schedule:
+    - cron: '0 3 * * *'  # Daily at 3 AM UTC
+  workflow_dispatch:      # Manual trigger
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Download site
+        run: |
+          wget --mirror \
+               --page-requisites \
+               --adjust-extension \
+               --convert-links \
+               --backup-converted \
+               --no-parent \
+               --timestamping \
+               --wait=1 \
+               --random-wait \
+               https://dreamscapesgoods.com/
+          
+          # Move downloaded files to root
+          if [ -d "dreamscapesgoods.com" ]; then
+            rm -rf backup
+            mv dreamscapesgoods.com backup
+          fi
+      
+      - name: Commit changes
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add .
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Backup $(date +'%Y-%m-%d %H:%M:%S UTC')" && git push)
