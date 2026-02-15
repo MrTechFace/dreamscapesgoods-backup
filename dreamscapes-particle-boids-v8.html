@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dreamscapes Goods - Boids Swarm v8</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: #0a0a0a;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        #particle-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .hero-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            text-align: center;
+            opacity: 0;
+            animation: fadeIn 1s ease-out 0.5s forwards;
+            pointer-events: none;
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        h1 {
+            font-size: 4rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 1rem;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+        }
+
+        .subtitle {
+            font-size: 1.5rem;
+            color: #d4a5a5;
+            margin-bottom: 2rem;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 15px 40px;
+            font-size: 1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+            font-family: 'Montserrat', sans-serif;
+            pointer-events: all;
+        }
+
+        .btn-primary {
+            background-color: #ffffff;
+            color: #0a0a0a;
+            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-primary:hover {
+            background-color: #e0e0e0;
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: #ffffff;
+            border: 2px solid #ffffff;
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            .subtitle {
+                font-size: 1.2rem;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="particle-canvas"></canvas>
+
+    <div class="hero-content">
+        <h1>Dreamscapes Goods</h1>
+        <p class="subtitle">Unique designs inspired by dreams and the cosmos</p>
+        <div class="cta-buttons">
+            <a href="/shop" class="btn btn-primary">Explore Collection</a>
+            <a href="/about" class="btn btn-secondary">Learn More</a>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // --- Vector Helper Class ---
+        class Vector {
+            constructor(x, y) { this.x = x; this.y = y; }
+            add(v) { this.x += v.x; this.y += v.y; return this; }
+            sub(v) { this.x -= v.x; this.y -= v.y; return this; }
+            mult(n) { this.x *= n; this.y *= n; return this; }
+            div(n) { this.x /= n; this.y /= n; return this; }
+            mag() { return Math.sqrt(this.x * this.x + this.y * this.y); }
+            setMag(n) { this.normalize().mult(n); return this; }
+            normalize() {
+                let m = this.mag();
+                if (m !== 0) { this.div(m); }
+                return this;
+            }
+            limit(max) {
+                if (this.mag() > max) { this.normalize().mult(max); }
+                return this;
+            }
+            static dist(v1, v2) {
+                let dx = v1.x - v2.x;
+                let dy = v1.y - v2.y;
+                return Math.sqrt(dx * dx + dy * dy);
+            }
+            static sub(v1, v2) { return new Vector(v1.x - v2.x, v1.y - v2.y); }
+            copy() { return new Vector(this.x, this.y); }
+        }
+
+        // --- Boids Configuration ---
+        const config = {
+            count: 350,
+            maxSpeed: 6,         // Reduced speed to prevent chaotic snapping
+            maxForce: 0.15,      // Steering force limit
+            perceptionRadius: 60, // How far they see neighbors
+            separationDist: 35,  // How much personal space they need (prevents clogging)
+            mouseInfluence: 1.5, // Strength of mouse attraction
+            colorSpeed: 0.5
+        };
+
+        let boids = [];
+        let mouse = new Vector(window.innerWidth / 2, window.innerHeight / 2);
+
+        class Boid {
+            constructor(x, y) {
+                this.position = new Vector(x, y);
+                this.velocity = new Vector(Math.random() - 0.5, Math.random() - 0.5);
+                this.velocity.setMag(Math.random() * 2 + 2);
+                this.acceleration = new Vector(0, 0);
+                this.size = 2 + Math.random() * 3;
+                this.hue = Math.random() * 360;
+            }
+
+            // 1. Separation: Steer to avoid crowding
+            separation(boids) {
+                let steering = new Vector(0, 0);
+                let total = 0;
+                for (let other of boids) {
+                    let d = Vector.dist(this.position, other.position);
+                    if (other !== this && d < config.separationDist) {
+                        let diff = Vector.sub(this.position, other.position);
+                        diff.normalize();
+                        diff.div(d); // Weight by distance
+                        steering.add(diff);
+                        total++;
+                    }
+                }
+                if (total > 0) {
+                    steering.div(total);
+                    steering.setMag(config.maxSpeed);
+                    steering.sub(this.velocity);
+                    steering.limit(config.maxForce * 1.5); // Stronger separation
+                }
+                return steering;
+            }
+
+            // 2. Alignment: Steer towards average heading of neighbors
+            alignment(boids) {
+                let steering = new Vector(0, 0);
+                let total = 0;
+                for (let other of boids) {
+                    let d = Vector.dist(this.position, other.position);
+                    if (other !== this && d < config.perceptionRadius) {
+                        steering.add(other.velocity);
+                        total++;
+                    }
+                }
+                if (total > 0) {
+                    steering.div(total);
+                    steering.setMag(config.maxSpeed);
+                    steering.sub(this.velocity);
+                    steering.limit(config.maxForce);
+                }
+                return steering;
+            }
+
+            // 3. Cohesion: Steer to move toward average position of neighbors
+            cohesion(boids) {
+                let steering = new Vector(0, 0);
+                let total = 0;
+                for (let other of boids) {
+                    let d = Vector.dist(this.position, other.position);
+                    if (other !== this && d < config.perceptionRadius) {
+                        steering.add(other.position);
+                        total++;
+                    }
+                }
+                if (total > 0) {
+                    steering.div(total);
+                    steering.sub(this.position);
+                    steering.setMag(config.maxSpeed);
+                    steering.sub(this.velocity);
+                    steering.limit(config.maxForce);
+                }
+                return steering;
+            }
+
+            // 4. Seek Mouse
+            seek(target) {
+                // To keep them in a "ring" shape, we can target a point on a ring around the mouse
+                // based on the boid's angle to the mouse?
+                // Or just seek the mouse directly but separation keeps them apart?
+                // Let's try direct seek first, separation should handle the "clogging".
+
+                let desired = Vector.sub(target, this.position);
+
+                // Arrive behavior (slow down when close)
+                let d = desired.mag();
+                if (d < 100) {
+                    let m = (d / 100) * config.maxSpeed;
+                    desired.setMag(m);
+                } else {
+                    desired.setMag(config.maxSpeed);
+                }
+
+                let steer = Vector.sub(desired, this.velocity);
+                steer.limit(config.maxForce * config.mouseInfluence);
+                return steer;
+            }
+
+            flock(boids) {
+                let sep = this.separation(boids);
+                let ali = this.alignment(boids);
+                let coh = this.cohesion(boids);
+                let seek = this.seek(mouse);
+
+                // Weighting forces
+                sep.mult(2.5);  // High separation to prevent clogging!
+                ali.mult(1.0);  // Align to look like a school
+                coh.mult(1.0);  // Stay together
+                seek.mult(1.5); // Move to mouse
+
+                this.acceleration.add(sep);
+                this.acceleration.add(ali);
+                this.acceleration.add(coh);
+                this.acceleration.add(seek);
+            }
+
+            update() {
+                this.velocity.add(this.acceleration);
+                this.velocity.limit(config.maxSpeed);
+                this.position.add(this.velocity);
+                this.acceleration.mult(0); // Reset accel
+
+                // Dynamic Hue based on velocity/position
+                // Blue(240) -> Purple(300) -> Pink(340)
+                let angle = this.velocity.y;
+                this.hue = (this.hue + 0.5) % 360;
+            }
+
+            draw() {
+                // Capsule / Fish shape
+                let theta = Math.atan2(this.velocity.y, this.velocity.x);
+                let speed = this.velocity.mag();
+
+                ctx.save();
+                ctx.translate(this.position.x, this.position.y);
+                ctx.rotate(theta);
+
+                // Map color to angle around mouse for that "rainbow halo" feel?
+                // Or just time based? Let's stick to the requested gradient logic if possible.
+                // Let's use coordinate based hue for stable gradient appearance
+                // Mouse relative angle
+                let ma = Math.atan2(this.position.y - mouse.y, this.position.x - mouse.x);
+                let deg = (ma * 180 / Math.PI + 360) % 360;
+                let finalHue = deg;
+                // Adjust to Blue-Pink range
+                // 0 is Red. 240 is Blue. 
+                // Let's map it roughly to the user's preferred palette
+
+                ctx.fillStyle = `hsl(${finalHue}, 80%, 60%)`;
+
+                ctx.beginPath();
+                // Draw fish/capsule
+                let len = this.size * 2 + speed * 3;
+                let wid = this.size;
+
+                ctx.ellipse(0, 0, len / 2, wid / 2, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+        }
+
+        // Init
+        for (let i = 0; i < config.count; i++) {
+            // Spawn in a circle
+            let a = Math.random() * Math.PI * 2;
+            let r = 200 + Math.random() * 100;
+            boids.push(new Boid(
+                window.innerWidth / 2 + Math.cos(a) * r,
+                window.innerHeight / 2 + Math.sin(a) * r
+            ));
+        }
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        let mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2;
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        // Animation Loop
+        function animate() {
+            // Smooth mouse
+            mouse.x += (mouseX - mouse.x) * 0.1;
+            mouse.y += (mouseY - mouse.y) * 0.1;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // NO TRAILS
+
+            // Optimized: Spatial partitioning is overkill for 350 particles in modern JS,
+            // but we can limit checks if needed. n^2 for 350 is 122,500 opts/frame.
+            // On a 60fps budget (16ms), that's tight but doable in V8/Chrome.
+            // For safety, let's just run it.
+
+            // Snapshot boids state for consistent updates? 
+            // Standard boids usually update in place for performance.
+
+            for (let boid of boids) {
+                boid.flock(boids);
+                boid.update();
+                boid.draw();
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        resizeCanvas();
+        animate();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dreamscapes Goods - Particle Halo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: #0a0a0a;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #particle-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .hero-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            text-align: center;
+            opacity: 0;
+            animation: fadeIn 1s ease-out 0.5s forwards;
+            pointer-events: none;
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        h1 {
+            font-size: 4rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 1rem;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+        }
+
+        .subtitle {
+            font-size: 1.5rem;
+            color: #d4a5a5;
+            margin-bottom: 2rem;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 15px 40px;
+            font-size: 1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+            font-family: 'Montserrat', sans-serif;
+            pointer-events: all;
+        }
+
+        .btn-primary {
+            background-color: #ffffff;
+            color: #0a0a0a;
+            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-primary:hover {
+            background-color: #e0e0e0;
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: #ffffff;
+            border: 2px solid #ffffff;
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            .subtitle {
+                font-size: 1.2rem;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="particle-canvas"></canvas>
+
+    <div class="hero-content">
+        <h1>Dreamscapes Goods</h1>
+        <p class="subtitle">Unique designs inspired by dreams and the cosmos</p>
+        <div class="cta-buttons">
+            <a href="/shop" class="btn btn-primary">Explore Collection</a>
+            <a href="/about" class="btn btn-secondary">Learn More</a>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Particle system
+        const particleCount = 350;
+        const particles = [];
+
+        // Center tracking with spring physics
+        let mouseX = canvas.width / 2;
+        let mouseY = canvas.height / 2;
+        let centerX = canvas.width / 2;
+        let centerY = canvas.height / 2;
+        let velX = 0;
+        let velY = 0;
+
+        // Continuous rotation
+        let globalRotation = 0;
+        const rotationSpeed = 0.0003;
+
+        class Particle {
+            constructor(angle, radius) {
+                this.baseAngle = angle;
+                this.baseRadius = radius;
+                this.size = Math.random() * 4 + 2;
+
+                // Individual drift for organic feel
+                this.driftSpeed = (Math.random() - 0.5) * 0.001;
+                this.driftOffset = Math.random() * Math.PI * 2;
+
+                // Color gradient around the ring
+                const hue = (angle / (Math.PI * 2)) * 360;
+                this.color = `hsla(${hue}, 70%, 60%, 0.7)`;
+            }
+
+            getPosition(time) {
+                // Add global rotation + individual drift
+                const currentAngle = this.baseAngle + globalRotation + Math.sin(time * this.driftSpeed + this.driftOffset) * 0.1;
+
+                // Calculate position relative to center
+                let x = centerX + Math.cos(currentAngle) * this.baseRadius;
+                let y = centerY + Math.sin(currentAngle) * this.baseRadius;
+
+                // Deformation based on distance to mouse
+                const dx = x - mouseX;
+                const dy = y - mouseY;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                // Compress near mouse, stretch far away
+                const maxDist = Math.sqrt(canvas.width * canvas.width + canvas.height * canvas.height) / 2;
+                const influence = Math.max(0, 1 - dist / maxDist);
+                const deformAmount = influence * 40;
+
+                // Apply deformation
+                if (dist > 0) {
+                    x -= (dx / dist) * deformAmount;
+                    y -= (dy / dist) * deformAmount;
+                }
+
+                return { x, y };
+            }
+
+            draw(time) {
+                const pos = this.getPosition(time);
+
+                ctx.save();
+                ctx.translate(pos.x, pos.y);
+
+                // Hexagon
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                for (let i = 0; i < 6; i++) {
+                    const angle = (Math.PI / 3) * i;
+                    const x = Math.cos(angle) * this.size;
+                    const y = Math.sin(angle) * this.size;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.restore();
+            }
+        }
+
+        // Initialize particles in ring/donut shape
+        function initParticles() {
+            const minRadius = Math.min(canvas.width, canvas.height) * 0.2;
+            const maxRadius = Math.min(canvas.width, canvas.height) * 0.45;
+
+            for (let i = 0; i < particleCount; i++) {
+                const angle = (i / particleCount) * Math.PI * 2;
+                const radius = minRadius + Math.random() * (maxRadius - minRadius);
+                particles.push(new Particle(angle, radius));
+            }
+        }
+
+        // Mouse tracking
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        // Animation loop
+        let time = 0;
+        function animate() {
+            time += 1;
+
+            // Clear with trail
+            ctx.fillStyle = 'rgba(10, 10, 10, 0.12)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Update center with damped spring (follows mouse smoothly)
+            const dx = mouseX - centerX;
+            const dy = mouseY - centerY;
+
+            velX += dx * 0.012;
+            velY += dy * 0.012;
+            velX *= 0.88;
+            velY *= 0.88;
+
+            centerX += velX;
+            centerY += velY;
+
+            // Continuous rotation
+            globalRotation += rotationSpeed;
+
+            // Draw all particles
+            particles.forEach(p => p.draw(time));
+
+            requestAnimationFrame(animate);
+        }
+
+        // Start
+        setTimeout(() => {
+            initParticles();
+            animate();
+        }, 500);
+    </script>
+</body>
+
+</html>

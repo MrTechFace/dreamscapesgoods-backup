@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dreamscapes Goods - Antigravity Final</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: #0a0a0a;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        #particle-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .hero-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            text-align: center;
+            opacity: 0;
+            animation: fadeIn 1s ease-out 0.5s forwards;
+            pointer-events: none;
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        h1 {
+            font-size: 4rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 1rem;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+        }
+
+        .subtitle {
+            font-size: 1.5rem;
+            color: #d4a5a5;
+            margin-bottom: 2rem;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 15px 40px;
+            font-size: 1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+            font-family: 'Montserrat', sans-serif;
+            pointer-events: all;
+        }
+
+        .btn-primary {
+            background-color: #ffffff;
+            color: #0a0a0a;
+            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-primary:hover {
+            background-color: #e0e0e0;
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: #ffffff;
+            border: 2px solid #ffffff;
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            .subtitle {
+                font-size: 1.2rem;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="particle-canvas"></canvas>
+
+    <div class="hero-content">
+        <h1>Dreamscapes Goods</h1>
+        <p class="subtitle">Unique designs inspired by dreams and the cosmos</p>
+        <div class="cta-buttons">
+            <a href="/shop" class="btn btn-primary">Explore Collection</a>
+            <a href="/about" class="btn btn-secondary">Learn More</a>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Simplified Noise
+        function pseudoNoise(x, y, time) {
+            return Math.sin(x * 0.01 + time) * Math.cos(y * 0.01 + time) * 2;
+        }
+
+        const config = {
+            particleCount: 600,
+            ringRadius: 350,
+            ringThickness: 150,
+            flowSpeed: 0.5,
+            mouseForce: 0.05,
+            damping: 0.96
+        };
+
+        const particles = [];
+        let mouseX = window.innerWidth / 2;
+        let mouseY = window.innerHeight / 2;
+        let targetX = window.innerWidth / 2;
+        let targetY = window.innerHeight / 2;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            targetX = canvas.width / 2;
+            targetY = canvas.height / 2;
+        }
+
+        // Init Particles
+        for (let i = 0; i < config.particleCount; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = config.ringRadius + (Math.random() - 0.5) * config.ringThickness;
+
+            const x = window.innerWidth / 2 + Math.cos(angle) * dist;
+            const y = window.innerHeight / 2 + Math.sin(angle) * dist;
+
+            particles.push({
+                x: x,
+                y: y,
+                vx: 0,
+                vy: 0,
+                baseAngle: angle,
+                dist: dist,
+                size: 2 + Math.random() * 3,
+                hue: Math.random() * 360,
+                friction: 0.92 + Math.random() * 0.04
+            });
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        let time = 0;
+        function animate() {
+            time += 0.005;
+
+            // Mouse Smooth Follow
+            targetX += (mouseX - targetX) * 0.05;
+            targetY += (mouseY - targetY) * 0.05;
+
+            // NO TRAILS: Clear entire canvas every frame
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // <--- This removes trails
+
+            for (let i = 0; i < config.particleCount; i++) {
+                const p = particles[i];
+
+                // 1. Attract to Ring Shape
+                const dx = p.x - targetX;
+                const dy = p.y - targetY;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const angle = Math.atan2(dy, dx);
+
+                const distError = dist - config.ringRadius;
+                const force = distError * -0.001;
+
+                p.vx += Math.cos(angle) * force;
+                p.vy += Math.sin(angle) * force;
+
+                // 2. Flow along the ring
+                const tangentX = -Math.sin(angle);
+                const tangentY = Math.cos(angle);
+
+                p.vx += tangentX * 0.05;
+                p.vy += tangentY * 0.05;
+
+                // 3. Noise
+                const noise = pseudoNoise(p.x, p.y, time);
+                p.vx += Math.cos(noise) * 0.02;
+                p.vy += Math.sin(noise) * 0.02;
+
+                // 4. Mouse Local Deformation
+                const dmx = mouseX - p.x;
+                const dmy = mouseY - p.y;
+                const dmdist = Math.sqrt(dmx * dmx + dmy * dmy);
+                if (dmdist < 300) {
+                    p.vx += dmx * 0.0001;
+                    p.vy += dmy * 0.0001;
+                }
+
+                // Physics Update
+                p.vx *= p.friction;
+                p.vy *= p.friction;
+                p.x += p.vx;
+                p.y += p.vy;
+
+                // Color Calculation
+                const deg = ((angle * 180 / Math.PI) + 360) % 360;
+                p.hue = deg + time * 100;
+
+                // Draw Rounded Dash (Capsule)
+                const velMag = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+                const heading = Math.atan2(p.vy, p.vx);
+
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(heading);
+
+                ctx.fillStyle = `hsl(${deg}, 70%, 60%)`;
+                ctx.beginPath();
+
+                const len = Math.min(velMag * 10, 30);
+                const width = p.size;
+
+                ctx.ellipse(0, 0, len / 2 + width, width, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        resizeCanvas();
+        animate();
+    </script>
+</body>
+
+</html>

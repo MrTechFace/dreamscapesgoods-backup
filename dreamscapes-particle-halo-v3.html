@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dreamscapes Goods - Particle Halo v3</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: #0a0a0a;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        #particle-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .hero-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            text-align: center;
+            opacity: 0;
+            animation: fadeIn 1s ease-out 0.5s forwards;
+            pointer-events: none;
+            /* Let clicks pass through to canvas if needed */
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        h1 {
+            font-size: 4rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 1rem;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+        }
+
+        .subtitle {
+            font-size: 1.5rem;
+            color: #d4a5a5;
+            margin-bottom: 2rem;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 15px 40px;
+            font-size: 1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+            font-family: 'Montserrat', sans-serif;
+            pointer-events: all;
+        }
+
+        .btn-primary {
+            background-color: #ffffff;
+            color: #0a0a0a;
+            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-primary:hover {
+            background-color: #e0e0e0;
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: #ffffff;
+            border: 2px solid #ffffff;
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            .subtitle {
+                font-size: 1.2rem;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="particle-canvas"></canvas>
+
+    <div class="hero-content">
+        <h1>Dreamscapes Goods</h1>
+        <p class="subtitle">Unique designs inspired by dreams and the cosmos</p>
+        <div class="cta-buttons">
+            <a href="/shop" class="btn btn-primary">Explore Collection</a>
+            <a href="/about" class="btn btn-secondary">Learn More</a>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            // Reset center to middle on resize
+            physics.x = canvas.width / 2;
+            physics.y = canvas.height / 2;
+            physics.targetX = canvas.width / 2;
+            physics.targetY = canvas.height / 2;
+        }
+
+        // --- Configuration ---
+        const PARTICLE_COUNT = 400;
+        const RING_RADIUS_MIN = 250;
+        const RING_RADIUS_MAX = 500;
+        const SPRING_STIFFNESS = 0.05; // Low stiffness for "laggy" feel
+        const DAMPING = 0.90;          // High damping for "fluid" feel
+        const ROTATION_SPEED = 0.001;  // Constants rotation
+
+        // --- Physics State ---
+        // The "Halo" itself is a single physics object
+        const physics = {
+            x: window.innerWidth / 2,
+            y: window.innerHeight / 2,
+            targetX: window.innerWidth / 2,
+            targetY: window.innerHeight / 2,
+            vx: 0,
+            vy: 0,
+            rotation: 0
+        };
+
+        // --- Particles ---
+        // Particles are defined relative to the center (0,0)
+        const particles = [];
+        for (let i = 0; i < PARTICLE_COUNT; i++) {
+            const angle = (Math.PI * 2 * i) / PARTICLE_COUNT;
+            const r = RING_RADIUS_MIN + Math.random() * (RING_RADIUS_MAX - RING_RADIUS_MIN);
+
+            // Color gradient: Blue/Purple (0-180deg) -> Pink/Red/Yellow (180-360deg)
+            // Normalized angle 0-1
+            const normAngle = angle / (Math.PI * 2);
+            let hue;
+            if (normAngle < 0.5) {
+                // Blue/Purple range: 240 -> 300
+                hue = 240 + (normAngle * 2) * 60;
+            } else {
+                // Pink/Red/Yellow range: 300 -> 360 -> 60 (approx)
+                // We'll map 0.5-1.0 to 320-400 (400%360 = 40 = Yellowish)
+                hue = 320 + ((normAngle - 0.5) * 2) * 80;
+            }
+
+            particles.push({
+                baseAngle: angle,
+                baseRadius: r,
+                size: 2 + Math.random() * 3,
+                hue: hue,
+                driftSpeed: (Math.random() - 0.5) * 0.002, // Individual drift
+                driftOffset: Math.random() * Math.PI * 2
+            });
+        }
+
+        // --- Mouse Interaction ---
+        window.addEventListener('resize', resizeCanvas);
+        document.addEventListener('mousemove', (e) => {
+            physics.targetX = e.clientX;
+            physics.targetY = e.clientY;
+        });
+
+        // --- Animation Loop ---
+        function animate() {
+            // 1. Physics Update (Spring)
+            const dx = physics.targetX - physics.x;
+            const dy = physics.targetY - physics.y;
+
+            physics.vx += dx * SPRING_STIFFNESS;
+            physics.vy += dy * SPRING_STIFFNESS;
+
+            physics.vx *= DAMPING;
+            physics.vy *= DAMPING;
+
+            physics.x += physics.vx;
+            physics.y += physics.vy;
+
+            physics.rotation += ROTATION_SPEED;
+
+            // 2. Deformation Calculation
+            // Calculate velocity magnitude and direction for stretch/squash
+            const velMag = Math.sqrt(physics.vx * physics.vx + physics.vy * physics.vy);
+            // Limit deformation
+            const stretchFactor = 1 + Math.min(velMag * 0.015, 0.5); // Stretch along motion
+            const squashFactor = 1 / Math.sqrt(stretchFactor);       // Squash perpendicular (volume/area preservation approx)
+
+            const moveAngle = Math.atan2(physics.vy, physics.vx);
+            const cosMove = Math.cos(moveAngle);
+            const sinMove = Math.sin(moveAngle);
+
+            // 3. Render
+            ctx.fillStyle = '#0a0a0a'; // Clear with solid color to avoid trails for now (cleaner loop)
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            ctx.translate(physics.x, physics.y);
+
+            // We want to orient the whole system so we can apply stretch along X axis, then rotate back
+            // Actually simpler: iterate particles, calculate their world pos, then draw
+
+            // Let's stick to the "Relative to Center" approach for rendering.
+            // We apply the global rotation to the particles first.
+
+            for (const p of particles) {
+                // Current Angle (Base + Global + Drift)
+                const currentAngle = p.baseAngle + physics.rotation + Math.sin(Date.now() * 0.001 * p.driftSpeed + p.driftOffset);
+
+                // Polar to Cartesian (Relative)
+                let rx = Math.cos(currentAngle) * p.baseRadius;
+                let ry = Math.sin(currentAngle) * p.baseRadius;
+
+                // --- Apply Deformation (Squash/Stretch) ---
+                // Rotate point to align with movement direction
+                // x' = x cos - y sin
+                // y' = x sin + y cos
+                // We align velocity with X axis to stretch X
+
+                if (velMag > 0.1) {
+                    // Align to velocity vector (-moveAngle)
+                    const rotX = rx * cosMove + ry * sinMove;
+                    const rotY = -rx * sinMove + ry * cosMove;
+
+                    // Apply stretch to X (aligned with velocity), squash to Y
+                    const stretchedX = rotX * stretchFactor; // Stretch along movement (drag effect? actually usually things stretch *along* motion)
+                    // The user said: "side near cursor compresses slightly, far side stretches/gets sparser"
+                    // This implies a gradient of spacing, which is what happens naturally when you pull the center
+                    // relative to the outer ring if they had different drag. 
+                    // But our spring model moves the whole center.
+
+                    // Let's apply a simpler deformation: Just standard squash/stretch
+                    const squashedY = rotY * squashFactor;
+
+                    // Rotate back (+moveAngle)
+                    rx = stretchedX * cosMove - squashedY * sinMove;
+                    ry = stretchedX * sinMove + squashedY * cosMove;
+                }
+
+                // Draw Particle (Hexagon)
+                // Absolute position is implied by the ctx.translate(physics.x, physics.y) we did earlier
+                // So we just draw at rx, ry
+
+                ctx.fillStyle = `hsl(${p.hue}, 70%, 60%)`;
+
+                ctx.save();
+                ctx.translate(rx, ry);
+
+                // Optional: Rotate particle to face movement direction or center?
+                // User said: "orient along motion/tangent".
+                // Tangent of the circle is currentAngle + PI/2
+                ctx.rotate(currentAngle + Math.PI / 2);
+
+                drawHexagon(ctx, p.size);
+                ctx.restore();
+            }
+
+            ctx.restore();
+
+            requestAnimationFrame(animate);
+        }
+
+        function drawHexagon(ctx, size) {
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+                const angle = (Math.PI / 3) * i;
+                const x = Math.cos(angle) * size;
+                const y = Math.sin(angle) * size;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // Initialize
+        resizeCanvas();
+        animate();
+    </script>
+</body>
+
+</html>

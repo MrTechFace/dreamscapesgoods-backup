@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dreamscapes Goods | Wear the Void</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* --- RESET & VARIABLES --- */
+        :root {
+            --void-black: #050505;
+            --starlight: #ffffff;
+            --gold-accent: #d4af37;
+            --deep-navy: #0a0a12;
+            --font-main: 'Montserrat', sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--void-black);
+            color: var(--starlight);
+            font-family: var(--font-main);
+            overflow-x: hidden;
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.3s ease;
+        }
+
+        /* --- LOADING SCREEN (WORMHOLE) --- */
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--void-black);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            overflow: hidden;
+            transition: opacity 1.5s ease-out;
+        }
+
+        .loader-text {
+            position: absolute;
+            font-family: var(--font-main);
+            font-weight: 700;
+            letter-spacing: 5px;
+            font-size: 1.5rem;
+            color: var(--starlight);
+            text-shadow: 0 0 10px var(--gold-accent);
+            animation: text-pulse 0.5s infinite alternate;
+            /* Faster pulse for intensity */
+            z-index: 10;
+            mix-blend-mode: exclusion;
+        }
+
+        @keyframes text-pulse {
+            0% {
+                opacity: 0.8;
+                transform: scale(1);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1.1);
+                text-shadow: 0 0 20px var(--gold-accent);
+            }
+        }
+
+        /* --- LOADER BAR --- */
+        .loader-bar-container {
+            position: absolute;
+            bottom: 40%;
+            width: 200px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            z-index: 10;
+        }
+
+        .loader-bar {
+            width: 0%;
+            height: 100%;
+            background: var(--gold-accent);
+            box-shadow: 0 0 10px var(--gold-accent);
+            transition: width 0.1s linear;
+        }
+
+        /* --- CANVAS STARFIELD --- */
+        #starfield-canvas {
+            position: fixed;
+            /* Fixed background */
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* --- HERO SECTION --- */
+        #hero-section {
+            height: 100vh;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            z-index: 2;
+            opacity: 0;
+            /* JS Fade in */
+            transition: opacity 2s ease-out;
+        }
+
+        .hero-content-wrapper {
+            background: rgba(5, 5, 5, 0.6);
+            /* Slightly more transparent than story for hero aesthetics */
+            padding: 40px 60px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(4px);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .hero-logo {
+            font-size: 4rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            background: linear-gradient(to right, #fff, #ddd, #fff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            /* Fix lint */
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.2);
+        }
+
+        .hero-tagline {
+            font-size: 1.2rem;
+            color: #aaa;
+            letter-spacing: 8px;
+            margin-bottom: 4rem;
+            text-transform: uppercase;
+        }
+
+        /* --- CTA BUTTON --- */
+        .btn-warp {
+            display: inline-block;
+            padding: 20px 60px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            letter-spacing: 3px;
+            color: var(--void-black);
+            background: var(--starlight);
+            border: 1px solid var(--starlight);
+            text-transform: uppercase;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+            cursor: pointer;
+        }
+
+        .btn-warp:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: var(--gold-accent);
+            transition: left 0.4s ease;
+            z-index: -1;
+        }
+
+        .btn-warp:hover {
+            color: var(--starlight);
+            border-color: var(--gold-accent);
+            box-shadow: 0 0 40px rgba(212, 175, 55, 0.4);
+        }
+
+        .btn-warp:hover:before {
+            left: 0;
+        }
+
+        .shipping-text {
+            display: block;
+            margin-top: 1.5rem;
+            font-size: 0.8rem;
+            color: var(--gold-accent);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            opacity: 0.8;
+        }
+
+        /* --- CONTENT SECTIONS --- */
+        section {
+            position: relative;
+            padding: 120px 20px;
+            z-index: 2;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 4rem;
+            color: var(--gold-accent);
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            font-weight: 300;
+        }
+
+        /* --- GRID SHOWCASE --- */
+        .showcase-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .art-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+            text-align: center;
+            height: 400px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .art-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            border-color: var(--gold-accent);
+            background: rgba(255, 255, 255, 0.05);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .art-image {
+            width: 100%;
+            flex-grow: 1;
+            background-position: center;
+            background-size: cover;
+            background-repeat: no-repeat;
+            margin-bottom: 20px;
+            border: 1px solid #222;
+            transition: all 0.5s ease;
+        }
+
+        .art-card:hover .art-image {
+            transform: scale(1.05);
+            border-color: var(--gold-accent);
+        }
+
+        .art-title {
+            font-size: 1rem;
+            color: #ddd;
+            letter-spacing: 2px;
+            font-weight: 400;
+            text-transform: uppercase;
+        }
+
+        /* --- BRAND STORY --- */
+        .story-container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+            line-height: 2;
+            font-size: 1.1rem;
+            color: #ccc;
+            font-weight: 300;
+            /* Readability Fix */
+            background: rgba(5, 5, 5, 0.85);
+            padding: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(4px);
+            border-radius: 4px;
+        }
+
+        .highlight {
+            color: var(--gold-accent);
+            font-weight: 600;
+        }
+
+        /* --- FOOTER --- */
+        footer {
+            padding: 80px 20px;
+            text-align: center;
+            border-top: 1px solid #111;
+            background: #000;
+            z-index: 2;
+            position: relative;
+        }
+
+        .trust-badges {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #666;
+        }
+
+        .badge-icon {
+            font-size: 1.5rem;
+            color: var(--gold-accent);
+        }
+
+        @media (max-width: 768px) {
+            .hero-logo {
+                font-size: 2.5rem;
+            }
+
+            .hero-tagline {
+                font-size: 0.9rem;
+                letter-spacing: 4px;
+            }
+
+            .section-title {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- LOADING SCREEN -->
+    <div id="loading-screen">
+        <div class="loader-text">ENTERING DREAMSCAPES</div>
+        <div class="loader-bar-container">
+            <div class="loader-bar" id="progress-bar"></div>
+        </div>
+    </div>
+
+    <!-- STARFIELD CANVAS -->
+    <canvas id="starfield-canvas"></canvas>
+
+    <!-- HERO -->
+    <div id="hero-section">
+        <div class="hero-content-wrapper">
+            <h1 class="hero-logo">Dreamscapes Goods</h1>
+            <p class="hero-tagline">Wear the Void</p>
+
+            <div onclick="window.location.href='https://dreamscapes-goods.printify.me/products'" class="btn-warp">
+                Explore Collection
+            </div>
+            <span class="shipping-text">Free US Shipping on Orders Over $50</span>
+        </div>
+    </div>
+
+    <!-- SHOWCASE -->
+    <section id="showcase">
+        <h2 class="section-title">The Collection</h2>
+        <div class="showcase-grid">
+            <!-- 1. Mothman -->
+            <div class="art-card"
+                onclick="window.location.href='https://dreamscapes-goods.printify.me/product/26761324/us-mothman-graphic-tee'">
+                <div class="art-image" style="background-image: url('assets/mothman.png');"></div>
+                <h3 class="art-title">Mothman Graphic Tee</h3>
+            </div>
+            <!-- 2. Odin -->
+            <div class="art-card"
+                onclick="window.location.href='https://dreamscapes-goods.printify.me/product/26761269/us-odin-graphic-cotton-tee'">
+                <div class="art-image" style="background-image: url('assets/odin.png');"></div>
+                <h3 class="art-title">Odin Graphic Tee</h3>
+            </div>
+            <!-- 3. Void Geometry (Skinwalker) -->
+            <div class="art-card"
+                onclick="window.location.href='https://dreamscapes-goods.printify.me/product/26761316/us-skinwalker-graphic-tee'">
+                <div class="art-image" style="background-image: url('assets/void.png');"></div>
+                <h3 class="art-title">Skinwalker Graphic Tee</h3>
+            </div>
+            <!-- 4. Cozy Liberté -->
+            <div class="art-card"
+                onclick="window.location.href='https://dreamscapes-goods.printify.me/product/26761465/cozy-liberte-crewneck-sweatshirt-unisex-fashion-casualwear-gift-for-freedom-lovers-everyday-style-motivational-apparel'">
+                <div class="art-image"
+                    style="background-image: url('assets/void.png'); filter: grayscale(100%) brightness(0.5);"></div>
+                <!-- Placeholder -->
+                <h3 class="art-title">Cozy Liberté Crewneck</h3>
+            </div>
+            <!-- 5. Heavy Blend -->
+            <div class="art-card"
+                onclick="window.location.href='https://dreamscapes-goods.printify.me/product/26761463/unisex-heavy-blend-crewneck-sweatshirt'">
+                <div class="art-image"
+                    style="background-image: url('assets/void.png'); filter: grayscale(100%) brightness(0.5);"></div>
+                <h3 class="art-title">Heavy Blend Crewneck</h3>
+            </div>
+            <!-- 6. Kinfolk -->
+            <div class="art-card"
+                onclick="window.location.href='https://dreamscapes-goods.printify.me/product/26761441/us-kinfolk-classic-embroidered-tee'">
+                <div class="art-image"
+                    style="background-image: url('assets/void.png'); filter: grayscale(100%) brightness(0.5);"></div>
+                <h3 class="art-title">Kinfolk Embroidered</h3>
+            </div>
+            <!-- 7. Lion's Heart -->
+            <div class="art-card"
+                onclick="window.location.href='https://dreamscapes-goods.printify.me/product/26761435/us-lions-heart-crest-hoodie'">
+                <div class="art-image"
+                    style="background-image: url('assets/void.png'); filter: grayscale(100%) brightness(0.5);"></div>
+                <h3 class="art-title">Lion's Heart Hoodie</h3>
+            </div>
+            <!-- 8. Sovereign Human -->
+            <div class="art-card"
+                onclick="window.location.href='https://dreamscapes-goods.printify.me/product/26761432/us-sovereign-human-being-unisex-heavy-blend-embroidered-crewneck'">
+                <div class="art-image"
+                    style="background-image: url('assets/void.png'); filter: grayscale(100%) brightness(0.5);"></div>
+                <h3 class="art-title">Sovereign Human Crew</h3>
+            </div>
+            <!-- 9. Werewolf -->
+            <div class="art-card"
+                onclick="window.location.href='https://dreamscapes-goods.printify.me/product/26761345/us-beware-of-the-werewolf-tee'">
+                <div class="art-image" style="background-image: url('assets/mothman.png'); filter: hue-rotate(45deg);">
+                </div> <!-- Variant placeholder -->
+                <h3 class="art-title">Beware Werewolf</h3>
+            </div>
+            <!-- 10. Bigfoot -->
+            <div class="art-card"
+                onclick="window.location.href='https://dreamscapes-goods.printify.me/product/26761330/us-bigfoot-adventure-graphic-cotton-tee'">
+                <div class="art-image" style="background-image: url('assets/mothman.png'); filter: hue-rotate(90deg);">
+                </div>
+                <h3 class="art-title">Bigfoot Adventure</h3>
+            </div>
+            <!-- 11. Jersey Devil -->
+            <div class="art-card"
+                onclick="window.location.href='https://dreamscapes-goods.printify.me/product/26761325/us-jersey-devil-graphic-tee'">
+                <div class="art-image" style="background-image: url('assets/mothman.png'); filter: hue-rotate(180deg);">
+                </div>
+                <h3 class="art-title">Jersey Devil</h3>
+            </div>
+            <!-- 12. Chupacabra -->
+            <div class="art-card"
+                onclick="window.location.href='https://dreamscapes-goods.printify.me/product/26761317/us-chupacabra-graphic-cotton-tee'">
+                <div class="art-image" style="background-image: url('assets/void.png'); filter: sepia(1);"></div>
+                <h3 class="art-title">Chupacabra</h3>
+            </div>
+            <!-- 13. Above Clouds -->
+            <div class="art-card"
+                onclick="window.location.href='https://dreamscapes-goods.printify.me/product/26761315/us-above-the-clouds-tee'">
+                <div class="art-image" style="background-image: url('assets/void.png'); filter: invert(1);"></div>
+                <h3 class="art-title">Above The Clouds</h3>
+            </div>
+            <!-- 14. Italian Script -->
+            <div class="art-card"
+                onclick="window.location.href='https://dreamscapes-goods.printify.me/product/26761254/us-italian-script-crest-tee'">
+                <div class="art-image" style="background-image: url('assets/odin.png'); filter: grayscale(1);"></div>
+                <h3 class="art-title">Italian Script Crest</h3>
+            </div>
+            <!-- 15. Escapism Cap -->
+            <div class="art-card"
+                onclick="window.location.href='https://dreamscapes-goods.printify.me/product/26761251/us-escapism-embroidered-dad-cap'">
+                <div class="art-image" style="background-image: url('assets/void.png');"></div>
+                <h3 class="art-title">Escapism Cap</h3>
+            </div>
+        </div>
+    </section>
+
+    <!-- BRAND STORY -->
+    <section id="story">
+        <h2 class="section-title">Origin</h2>
+        <div class="story-container">
+            <p>
+                From the quiet winters of <span class="highlight">Sweden</span> to the streets of the <span
+                    class="highlight">USA</span>.
+                Dreamscapes Goods explores the boundary between ancient myth and modern form.
+                <br><br>
+                We value craft over hype. Every piece is printed on demand by premium US providers, ensuring quality
+                that endures the ritual of daily wear.
+            </p>
+        </div>
+    </section>
+
+    <!-- FINAL CTA -->
+    <section style="text-align: center; padding-bottom: 150px;">
+        <h2 class="section-title" style="font-size: 1.5rem; margin-bottom: 2rem;">Join the movement</h2>
+        <div onclick="window.location.href='https://dreamscapes-goods.printify.me/products'" class="btn-warp"
+            style="padding: 25px 80px;">
+            Shop Now
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="trust-badges">
+            <div class="badge">
+                <span class="badge-icon">✦</span>
+                <span>Premium Quality</span>
+            </div>
+            <div class="badge">
+                <span class="badge-icon">🦅</span>
+                <span>Made in USA</span>
+            </div>
+            <div class="badge">
+                <span class="badge-icon">🔒</span>
+                <span>Secure Checkout</span>
+            </div>
+        </div>
+        <p style="color: #444; font-size: 0.8rem; letter-spacing: 1px;">&copy; 2026 Dreamscapes Goods.</p>
+    </footer>
+
+    <!-- PHYSICS SCRIPT -->
+    <script>
+        // --- CONFIG ---
+        const STAR_COUNT = 800; // Reduced for cleaner look
+        const IDLE_SPEED = 0.5; // Normal drift
+
+        // --- STATE ---
+        let width, height;
+        let stars = [];
+        let scrollSpeed = 0;
+        let lastScrollY = window.scrollY;
+
+        // Loading Phase State
+        let loadingPhase = true;
+        let warpSpeed = 100; // Hyperdrive speed
+
+        const canvas = document.getElementById('starfield-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // --- STAR CLASS ---
+        class Star {
+            constructor() {
+                this.reset();
+                // Randomize Z for initial depth
+                this.z = Math.random() * width;
+            }
+
+            reset() {
+                // If loading, spawn in center to create tunnel
+                const range = loadingPhase ? 0.1 : 2.0;
+                this.x = (Math.random() - 0.5) * width * range;
+                this.y = (Math.random() - 0.5) * height * range;
+                this.z = width;
+            }
+
+            update() {
+                // Determine speed
+                let speed = loadingPhase ? warpSpeed : (IDLE_SPEED + scrollSpeed * 2);
+
+                this.z -= speed;
+
+                // Reset
+                if (this.z <= 1) {
+                    this.reset();
+                    // Keep persistent position for trail continuity? 
+                    // No, new spawn is fine.
+                }
+            }
+
+            draw() {
+                const cx = width / 2;
+                const cy = height / 2;
+
+                // Perspective
+                const scale = width / this.z;
+                const x2d = this.x * scale + cx;
+                const y2d = this.y * scale + cy;
+
+                // Opacity
+                let opacity = 1 - (this.z / width);
+                if (opacity < 0) opacity = 0;
+
+                // Don't draw if off screen
+                if (this.z <= 0) return;
+
+                // Warp Logic: Long trails vs Dots
+                // Loading Phase = HUGE trails
+                // Scroll = Variable trails
+                const isWarping = loadingPhase || scrollSpeed > 2;
+
+                if (isWarping) {
+                    const angle = Math.atan2(y2d - cy, x2d - cx);
+                    const dist = Math.sqrt(Math.pow(x2d - cx, 2) + Math.pow(y2d - cy, 2));
+
+                    // Trail length
+                    let lengthFactor = loadingPhase ? 0.5 : (scrollSpeed * 0.05);
+                    // Cap length
+                    if (lengthFactor > 0.8) lengthFactor = 0.8;
+
+                    const tailLen = dist * lengthFactor;
+
+                    const tx = x2d - Math.cos(angle) * tailLen;
+                    const ty = y2d - Math.sin(angle) * tailLen;
+
+                    ctx.beginPath();
+                    // Blue-shift during warp
+                    ctx.strokeStyle = loadingPhase ? `rgba(200, 230, 255, ${opacity})` : `rgba(255, 255, 255, ${opacity})`;
+                    ctx.lineWidth = scale * (loadingPhase ? 0.8 : 2); // Thinner at high speed
+                    ctx.moveTo(x2d, y2d);
+                    ctx.lineTo(tx, ty);
+                    ctx.stroke();
+
+                } else {
+                    // Idle Dot
+                    ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+                    ctx.beginPath();
+                    ctx.arc(x2d, y2d, scale * 1.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        // --- INIT ---
+        function init() {
+            resize();
+            stars = [];
+            for (let i = 0; i < STAR_COUNT; i++) {
+                stars.push(new Star());
+            }
+
+            // Start Loop
+            requestAnimationFrame(loop);
+
+            // Start Loading Sequence
+            const startTime = Date.now();
+            const duration = 2500; // 2.5s
+
+            const progressBar = document.getElementById('progress-bar');
+
+            const loadInterval = setInterval(() => {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min((elapsed / duration) * 100, 100);
+
+                if (progressBar) progressBar.style.width = `${progress}%`;
+
+                if (elapsed >= duration) {
+                    clearInterval(loadInterval);
+
+                    // Trigger fade out
+                    // 1. Slow down warp
+                    let slowDown = setInterval(() => {
+                        warpSpeed *= 0.9;
+                        if (warpSpeed < 2) {
+                            loadingPhase = false;
+                            clearInterval(slowDown);
+                        }
+                    }, 50);
+
+                    // 2. Hide Loader
+                    const loader = document.getElementById('loading-screen');
+                    loader.style.opacity = '0';
+
+                    // 3. Show Hero
+                    const hero = document.getElementById('hero-section');
+                    hero.style.opacity = '1';
+
+                    setTimeout(() => {
+                        loader.style.display = 'none';
+                    }, 1500);
+                }
+            }, 30);
+        }
+
+        function loop() {
+            // artifact fix: Always clear with opaque black to prevent "muddy" trails/lines
+            // We rely on the Star.draw method to render lines for the warp effect.
+            ctx.fillStyle = "var(--void-black)"; // Use CSS var color or #050505
+            ctx.fillStyle = "#050505";
+            ctx.fillRect(0, 0, width, height);
+
+            // Scroll Physics
+            scrollSpeed *= 0.92; // Friction
+            if (scrollSpeed < 0.1) scrollSpeed = 0;
+
+            for (const star of stars) {
+                star.update();
+                star.draw();
+            }
+
+            requestAnimationFrame(loop);
+        }
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+
+        // --- EVENTS ---
+        window.addEventListener('resize', resize);
+
+        window.addEventListener('scroll', () => {
+            if (loadingPhase) return;
+            const currentY = window.scrollY;
+            const diff = Math.abs(currentY - lastScrollY);
+            scrollSpeed += diff * 0.1;
+            if (scrollSpeed > 40) scrollSpeed = 40;
+            lastScrollY = currentY;
+        });
+
+        // Go
+        init();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,34 @@
+<?php
+/**
+ * Plugin Name: Custom Geolocation Product Filter
+ * Description: DEBUG MODE - FILTER COMPLETELY DISABLED
+ * Version: 2.5 - DEBUG
+ * Author: Antigravity
+ */
+
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+// 1. SQL FILTER - DISABLED
+add_filter('posts_where', 'custom_geo_filter_sql', 999, 2);
+function custom_geo_filter_sql($where, $query)
+{
+    // DIRECT RETURN - NO FILTERING
+    return $where;
+}
+
+// 2. VISIBILITY FILTER - DISABLED
+add_filter('woocommerce_product_is_visible', 'custom_geo_filter_visibility', 10, 2);
+function custom_geo_filter_visibility($visible, $product_id)
+{
+    // DIRECT RETURN - NO FILTERING
+    return $visible;
+}
+
+// Helper (Unused but kept to prevent errors if called)
+function custom_get_visitor_country()
+{
+    return 'US';
+}
+?>

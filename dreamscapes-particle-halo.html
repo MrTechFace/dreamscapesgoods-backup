@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dreamscapes Goods</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: #0a0a0a;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #particle-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            text-align: center;
+            opacity: 0;
+            animation: fadeIn 1s ease-out 0.5s forwards;
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        h1 {
+            font-size: 4rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 1rem;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+        }
+
+        .subtitle {
+            font-size: 1.5rem;
+            color: #d4a5a5;
+            margin-bottom: 2rem;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 15px 40px;
+            font-size: 1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        .btn-primary {
+            background-color: #ffffff;
+            color: #0a0a0a;
+            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-primary:hover {
+            background-color: #e0e0e0;
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: #ffffff;
+            border: 2px solid #ffffff;
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            .subtitle {
+                font-size: 1.2rem;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="particle-canvas"></canvas>
+
+    <div class="hero-content">
+        <h1>Dreamscapes Goods</h1>
+        <p class="subtitle">Unique designs inspired by dreams and the cosmos</p>
+        <div class="cta-buttons">
+            <a href="/shop" class="btn btn-primary">Explore Collection</a>
+            <a href="/about" class="btn btn-secondary">Learn More</a>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Canvas setup
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Particle system config
+        const particleCount = 300;
+        const particles = [];
+
+        // Mouse tracking with spring physics
+        let targetX = canvas.width / 2;
+        let targetY = canvas.height / 2;
+        let currentX = canvas.width / 2;
+        let currentY = canvas.height / 2;
+
+        // Spring constants
+        const springStrength = 0.02;
+        const damping = 0.85;
+        let velocityX = 0;
+        let velocityY = 0;
+
+        // Particle class
+        class Particle {
+            constructor(angle, radius) {
+                this.baseAngle = angle;
+                this.baseRadius = radius;
+                this.angle = angle;
+                this.radius = radius;
+                this.x = 0;
+                this.y = 0;
+                this.size = Math.random() * 3 + 1;
+                this.length = Math.random() * 8 + 4;
+                this.opacity = Math.random() * 0.5 + 0.3;
+
+                // Color based on angle (gradient around the ring)
+                const hue = (angle / (Math.PI * 2)) * 360;
+                this.color = `hsla(${hue}, 70%, 60%, ${this.opacity})`;
+
+                // For smooth motion
+                this.vx = 0;
+                this.vy = 0;
+            }
+
+            update(centerX, centerY, mouseDistance) {
+                // Calculate base position relative to center
+                const baseX = centerX + Math.cos(this.baseAngle) * this.baseRadius;
+                const baseY = centerY + Math.sin(this.baseAngle) * this.baseRadius;
+
+                // Deformation based on mouse distance
+                // Particles closer to mouse compress, farther ones stretch
+                const dx = baseX - targetX;
+                const dy = baseY - targetY;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const maxDist = Math.sqrt(canvas.width * canvas.width + canvas.height * canvas.height) / 2;
+                const distRatio = dist / maxDist;
+
+                // Squash and stretch
+                const deformation = (1 - distRatio) * 0.3;
+                const deformX = (dx / dist) * deformation * 50;
+                const deformY = (dy / dist) * deformation * 50;
+
+                // Target position with deformation
+                const targetPosX = baseX - deformX;
+                const targetPosY = baseY - deformY;
+
+                // Spring towards target with damping
+                this.vx += (targetPosX - this.x) * 0.05;
+                this.vy += (targetPosY - this.y) * 0.05;
+                this.vx *= 0.9;
+                this.vy *= 0.9;
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Update angle for rotation
+                this.angle = Math.atan2(this.vy, this.vx);
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+
+                // Draw hexagon
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                const size = this.size * 3;
+                for (let i = 0; i < 6; i++) {
+                    const hexAngle = (Math.PI / 3) * i;
+                    const x = Math.cos(hexAngle) * size;
+                    const y = Math.sin(hexAngle) * size;
+                    if (i === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.restore();
+            }
+        }
+
+        // Create particles in a ring/donut shape
+        function initParticles() {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const minRadius = Math.min(canvas.width, canvas.height) * 0.15;
+            const maxRadius = Math.min(canvas.width, canvas.height) * 0.4;
+
+            for (let i = 0; i < particleCount; i++) {
+                const angle = (i / particleCount) * Math.PI * 2;
+                const radius = minRadius + Math.random() * (maxRadius - minRadius);
+                const particle = new Particle(angle, radius);
+
+                // Initialize position
+                particle.x = centerX + Math.cos(angle) * radius;
+                particle.y = centerY + Math.sin(angle) * radius;
+
+                particles.push(particle);
+            }
+        }
+
+        // Mouse move handler
+        canvas.addEventListener('pointermove', (e) => {
+            targetX = e.clientX;
+            targetY = e.clientY;
+        });
+
+        // Animation loop
+        function animate() {
+            // Clear canvas
+            ctx.fillStyle = 'rgba(10, 10, 10, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Update center position with spring physics
+            const dx = targetX - currentX;
+            const dy = targetY - currentY;
+
+            velocityX += dx * springStrength;
+            velocityY += dy * springStrength;
+
+            velocityX *= damping;
+            velocityY *= damping;
+
+            currentX += velocityX;
+            currentY += velocityY;
+
+            // Calculate mouse distance for deformation
+            const mouseDistance = Math.sqrt(dx * dx + dy * dy);
+
+            // Update and draw particles
+            particles.forEach(particle => {
+                particle.update(currentX, currentY, mouseDistance);
+                particle.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        // Start
+        setTimeout(() => {
+            initParticles();
+            animate();
+        }, 500);
+    </script>
+</body>
+
+</html>

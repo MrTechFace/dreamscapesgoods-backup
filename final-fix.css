@@ -1,0 +1,167 @@
+/* ==========================================================================
+   Dreamscapes Goods - Cosmic Void Design System (V4: Sharp & Locked)
+   ========================================================================== */
+
+/* --- 1. GLOBAL COSMIC THEME --- */
+body,
+.site,
+.site-header,
+.site-footer,
+.wp-site-blocks,
+.entry-content,
+.woocommerce {
+    background-color: #050505 !important;
+    color: #e0e0e0 !important;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+a,
+.woocommerce-loop-product__title {
+    color: #ffffff !important;
+    text-decoration: none !important;
+}
+
+/* --- 2. PRODUCT CARD LAYOUT (CSS GRID) --- */
+ul.products li.product,
+.wc-block-grid__product,
+.wc-block-product {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    gap: 10px;
+
+    /* Cosmic Card Container */
+    background: transparent !important;
+    border-radius: 12px;
+    margin-bottom: 40px !important;
+    position: relative;
+    text-align: center;
+
+    /* V4 CRITICAL FIX: Overflow Hidden implies nothing can stick out */
+    overflow: hidden !important;
+}
+
+/* --- 3. IMAGE OVERLAY SYSTEM --- */
+.wc-block-components-product-image,
+.woocommerce-loop-product__link {
+    grid-row: 1;
+    grid-column: 1;
+    z-index: 5;
+    position: relative;
+    margin-bottom: 0 !important;
+
+    /* Force Aspect Ratio on Container */
+    aspect-ratio: 1 / 1 !important;
+    width: 100% !important;
+}
+
+img.hover-image {
+    /* V4 FIX: Absolute Locking */
+    position: absolute !important;
+    top: 0;
+    left: 0;
+    grid-row: 1;
+    grid-column: 1;
+    z-index: 6;
+
+    /* Constrain Size */
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease-in-out !important;
+
+    /* Prevent Zoom */
+    transform: none !important;
+}
+
+/* Reveal Hover Image */
+ul.products li.product:hover img.hover-image,
+.wc-block-grid__product:hover img.hover-image,
+.wc-block-product:hover img.hover-image {
+    opacity: 1 !important;
+}
+
+/* --- 4. COSMIC IMAGE STYLING & SHARPENING --- */
+.wc-block-components-product-image img,
+img.hover-image,
+ul.products li.product a img {
+    border-radius: 12px !important;
+    aspect-ratio: 1 / 1 !important;
+    object-fit: cover !important;
+
+    background-color: #fff !important;
+    padding: 10px !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    /* Reduced shadow to be cleaner */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5) !important;
+
+    width: 100%;
+    /* No height 100% here to avoid stretching if container is loose, 
+       but parent container forces aspect ratio anyway. */
+
+    transition: all 0.3s ease !important;
+
+    /* V4 FIX: Sharpening */
+    image-rendering: -webkit-optimize-contrast;
+    transform: translateZ(0);
+    /* Hardware acceleration for crispness */
+    backface-visibility: hidden;
+}
+
+/* --- 5. CONTENT FLOW --- */
+.wc-block-components-product-title,
+.woocommerce-loop-product__title,
+.wp-block-post-title {
+    grid-row: 2;
+    margin-top: 10px !important;
+    /* More breathing room */
+    font-size: 1.1rem !important;
+    font-weight: 600 !important;
+}
+
+.wc-block-components-product-price,
+.price {
+    grid-row: 3;
+    color: #ccc !important;
+    font-size: 0.95rem !important;
+}
+
+.wc-block-components-product-button,
+.wp-block-button,
+.add_to_cart_button {
+    grid-row: 4;
+    margin-top: auto;
+    padding-bottom: 5px;
+    /* styling adjustment */
+}
+
+/* --- 6. BUTTON STYLING --- */
+.button,
+.wp-block-button__link,
+.add_to_cart_button {
+    background-color: #fff !important;
+    color: #050505 !important;
+    border-radius: 6px !important;
+    padding: 10px 20px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    font-size: 0.8rem !important;
+    letter-spacing: 1px;
+    border: none !important;
+    transition: all 0.2s ease;
+}
+
+.button:hover,
+.wp-block-button__link:hover,
+.add_to_cart_button:hover {
+    background-color: #e0e0e0 !important;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.4) !important;
+    transform: translateY(-2px);
+}
